@@ -63,7 +63,14 @@ def _start_search(ctx, query, scope=None, files_only=False, options=None, title=
                 except (OSError, RuntimeError, ValueError) as exc:
                     _report_error(ctx, exc)
                     return
-                ctx.message(f"Everything found {len(outcome.value)} result(s)")
+                count = len(outcome.value)
+                if count:
+                    ctx.message(
+                        f"Everything found {count} result(s); XeFM is preparing the pane. "
+                        "This may take time."
+                    )
+                else:
+                    ctx.message("Everything found no results")
 
         ctx.run_task("Everything Search", work, on_done=done, read_only=True)
     except (OSError, ValueError, RuntimeError, store.StoreError, EverythingError) as exc:
@@ -78,7 +85,7 @@ def _ask_query(ctx, scope=None):
         initial = {}
     default = initial.get("query", "") if isinstance(initial, dict) else ""
 
-    def accepted(ctx, query):
+    def accepted(query):
         if not query.strip():
             ctx.message("Enter a search term")
             return
@@ -118,7 +125,7 @@ def _pick_filter(ctx, scope=None):
         return
     labels = [f'{item["name"]}  —  {item["query"]}' for item in filters]
 
-    def selected(ctx, index):
+    def selected(index):
         if index is None:
             return
         item = filters[index]
@@ -157,7 +164,7 @@ def bookmarks(ctx):
         return
     labels = [item["label"] for item in items]
 
-    def selected(ctx, index):
+    def selected(index):
         if index is None:
             return
         item = items[index]
@@ -184,7 +191,7 @@ def save_bookmark(ctx):
         ctx.message("There is no recent Everything search to save")
         return
 
-    def accepted(ctx, name):
+    def accepted(name):
         name = name.strip()
         if not name:
             ctx.message("Bookmark name must not be empty")
@@ -220,7 +227,7 @@ def delete_bookmark(ctx):
         return
     names = [item["name"] for item in items]
 
-    def selected(ctx, index):
+    def selected(index):
         if index is None:
             return
         name = names[index]

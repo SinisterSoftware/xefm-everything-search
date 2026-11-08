@@ -372,7 +372,7 @@ def test_search_input_actions_launch_search_and_store_recent(monkeypatch, action
     _wire_actions(monkeypatch, context)
     action(context)
     assert len(context.inputs) == 1
-    context.inputs[0][2](context, "Report")
+    context.inputs[0][2]("Report")
     assert len(context.tasks) == 1
     _, work, done = context.tasks[0]
     result = work(SimpleNamespace(checkpoint=lambda: None, progress=lambda *args, **kwargs: None))
@@ -381,6 +381,59 @@ def test_search_input_actions_launch_search_and_store_recent(monkeypatch, action
         "query": "Report", "scope": expected_scope, "files_only": False, "options": {}
     }
     assert context.pane.opened == ([r"C:\work\report.pdf"], "Everything: Report")
+    assert context.messages == [
+        "Everything found 1 result(s); XeFM is preparing the pane. This may take time."
+    ]
+
+
+def test_search_no_results_does_not_claim_pane_is_being_prepared(monkeypatch):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+    actions.search_all(context)
+    context.inputs[0][2]("missing")
+    _, _, done = context.tasks[0]
+    done(context, SimpleNamespace(status="done", ok=True, value=[], error=None))
+    assert context.pane.opened == ([], "Everything: missing")
+    assert context.messages == ["Everything found no results"]
+
+
+@pytest.mark.parametrize(("status", "error", "message"), [
+    ("cancelled", None, "Everything search cancelled"),
+    ("failed", RuntimeError("offline"), "Everything Search failed: offline"),
+])
+def test_search_unsuccessful_task_does_not_prepare_pane(monkeypatch, status, error, message):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+    actions.search_all(context)
+    context.inputs[0][2]("report")
+    _, _, done = context.tasks[0]
+    done(context, SimpleNamespace(status=status, ok=False, value=None, error=error))
+    assert context.pane.opened is None
+    assert context.messages == [message]
+
+
+def test_search_open_list_error_does_not_claim_pane_is_being_prepared(monkeypatch):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+
+    def fail_open(paths, *, title):
+        raise RuntimeError("cannot open list")
+
+    context.pane.open_list = fail_open
+    actions.search_all(context)
+    context.inputs[0][2]("report")
+    _, _, done = context.tasks[0]
+    done(context, SimpleNamespace(status="done", ok=True, value=["report"], error=None))
+    assert context.messages == ["Everything Search failed: cannot open list"]
+
+
+def test_search_input_rejects_blank_query(monkeypatch):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+    actions.search_all(context)
+    context.inputs[0][2]("   ")
+    assert context.messages == ["Enter a search term"]
+    assert not context.tasks
 
 
 @pytest.mark.parametrize(("action", "expected_scope"), [
@@ -392,7 +445,7 @@ def test_filter_pick_actions_launch_without_migemo(monkeypatch, action, expected
     _wire_actions(monkeypatch, context)
     action(context)
     assert context.choices[0][1] == ["PDF  —  ext:pdf"]
-    context.choices[0][2](context, 0)
+    context.choices[0][2](0)
     assert context.tasks
     _, work, _ = context.tasks[0]
     calls = []
@@ -413,12 +466,28 @@ def test_bookmarks_action_includes_local_and_everything_sources(monkeypatch):
     monkeypatch.setattr(logic, "load_bookmarks", lambda **kwargs: items)
     actions.bookmarks(context)
     assert context.choices[0][1] == ["Recent"]
-    context.choices[0][2](context, 0)
+    context.choices[0][2](0)
     _, work, _ = context.tasks[0]
     calls = []
     monkeypatch.setattr(logic, "run_search", lambda query, **kwargs: calls.append(kwargs) or [])
     work(SimpleNamespace(checkpoint=lambda: None, progress=lambda *args, **kwargs: None))
     assert calls[0]["expand_migemo_enabled"] is False
+
+
+@pytest.mark.parametrize("action", [
+    actions.pick_filter, actions.pick_filter_folder, actions.bookmarks, actions.delete_bookmark,
+])
+def test_choice_cancellation_does_not_run_action(monkeypatch, action):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+    monkeypatch.setattr(logic, "load_bookmarks", lambda **kwargs: [{
+        "label": "Recent", "query": "ABC",
+    }])
+    monkeypatch.setattr(store, "read_bookmarks", lambda path: [{"name": "Recent"}])
+    action(context)
+    context.choices[0][2](None)
+    assert not context.tasks
+    assert not context.messages
 
 
 def test_save_and_delete_bookmark_actions_only_edit_extension_json(monkeypatch, tmp_path):
@@ -429,13 +498,24 @@ def test_save_and_delete_bookmark_actions_only_edit_extension_json(monkeypatch, 
     path = tmp_path / "everything_bookmarks.json"
     monkeypatch.setattr(logic, "bookmark_path", lambda: path)
     actions.save_bookmark(context)
-    context.inputs[0][2](context, "Work")
+    context.inputs[0][2]("Work")
     assert store.read_bookmarks(path) == [
         {"name": "Work", "query": "report", "scope": r"C:\work"}
     ]
     actions.delete_bookmark(context)
-    context.choices[0][2](context, 0)
+    context.choices[0][2](0)
     assert store.read_bookmarks(path) == []
+
+
+def test_save_bookmark_rejects_blank_name(monkeypatch, tmp_path):
+    context = FakeContext(state=FakeState({"query": "report"}))
+    _wire_actions(monkeypatch, context)
+    path = tmp_path / "everything_bookmarks.json"
+    monkeypatch.setattr(logic, "bookmark_path", lambda: path)
+    actions.save_bookmark(context)
+    context.inputs[0][2]("   ")
+    assert context.messages == ["Bookmark name must not be empty"]
+    assert not path.exists()
 
 
 def test_help_action_displays_explanation():

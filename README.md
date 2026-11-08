@@ -16,7 +16,10 @@ xefm ext install github:SinisterSoftware/xefm-everything-search
 Everything 1.5 must be running with IPC enabled. The extension first connects
 to the default instance, then tries the `1.5a` instance. Connection and search
 failures are reported in XeFM. Search results are collected in a background
-task and opened as a virtual list in the active pane.
+task and opened as a virtual list in the active pane. After results are found,
+XeFM checks the paths before displaying them; for large searches the original
+pane remains visible while the list is prepared. The log reports when the list
+is ready or when no paths can be shown.
 
 ## Actions
 
