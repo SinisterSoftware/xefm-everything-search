@@ -109,7 +109,8 @@ def _full_path(dll, results, index):
     raise EverythingError(f"Everything result {index} exceeds the supported path length")
 
 
-def search(query, options=None, checkpoint=None, progress=None, dll_loader=_load_dll):
+def search(query, options=None, checkpoint=None, progress=None, dll_loader=_load_dll,
+           on_set_search_text=None):
     """Search Everything and return full result paths."""
     if not isinstance(query, str):
         raise ValueError("Search query must be a string")
@@ -133,6 +134,8 @@ def search(query, options=None, checkpoint=None, progress=None, dll_loader=_load
         state = dll.Everything3_CreateSearchState()
         if not state:
             raise EverythingError(f"Could not create search state (SDK error 0x{_sdk_error(dll):08X})")
+        if on_set_search_text is not None:
+            on_set_search_text(query)
         if not dll.Everything3_SetSearchTextW(state, query):
             raise EverythingError(f"Could not set search query (SDK error 0x{_sdk_error(dll):08X})")
         for option, function in (

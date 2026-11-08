@@ -15,6 +15,7 @@ sys.modules.setdefault("xefm", xefm_module)
 sys.modules.setdefault("xefm.user_api", user_api_module)
 
 from everything_search import actions
+from everything_search.actions import _log_search_trace
 from everything_search import logic, store
 from everything_search.sdk import EverythingError, search
 
@@ -312,6 +313,79 @@ def test_filter_and_bookmark_searches_skip_migemo_expansion():
     assert received == ["ABC"]
 
 
+@pytest.mark.parametrize(
+    ("query", "scope", "files_only", "enabled", "expected_expanded", "expected_sdk"),
+    [
+        ("Tenki;lower;regex:ABC;Foo Bar", None, False, True,
+         'regex:"天気""雨";lower;regex:ABC;Foo Bar',
+         'regex:"天気""雨";lower;regex:ABC;Foo Bar'),
+        ("Tenki", r"C:\My Folder", True, True,
+         'regex:"天気""雨"', '"C:\\My Folder\\" file: regex:"天気""雨"'),
+        ("Tenki", None, False, False, "Tenki", "Tenki"),
+        ("", None, False, False, "", ""),
+    ],
+)
+def test_search_trace_matches_actual_sdk_text(query, scope, files_only, enabled,
+                                              expected_expanded, expected_sdk):
+    trace = []
+    dll = FakeSdk()
+    calls = []
+
+    def expand(token):
+        calls.append(token)
+        return '天気"雨'
+
+    def fake_search(text, **kwargs):
+        return search(text, dll_loader=lambda: dll, **kwargs)
+
+    logic.run_search(query, scope=scope, files_only=files_only, migemo_expand=expand,
+                     searcher=fake_search, expand_migemo_enabled=enabled, trace=trace)
+    assert ("Input", query) in trace
+    assert ("After Migemo", expected_expanded) in trace
+    assert ("SDK search text prepared", expected_sdk) in trace
+    assert ("SDK SetSearchTextW attempted", expected_sdk) in trace
+    assert ("query", expected_sdk) in dll.calls
+    assert calls == (["Tenki"] if enabled and query else [])
+    if calls:
+        assert ("Migemo input token", "Tenki") in trace
+        assert ("Migemo pattern", '天気"雨') in trace
+    else:
+        assert not any(label == "Migemo pattern" for label, _ in trace)
+
+
+@pytest.mark.parametrize("returned", [None, "", 42])
+def test_trace_records_unexpanded_callback_results(returned):
+    trace = []
+    result = logic.expand_migemo("ABC;lower;ext:ABC", lambda token: returned, trace)
+    assert result == "ABC;lower;ext:ABC"
+    assert ("Migemo input token", "ABC") in trace
+    assert ("Migemo skipped token", "lower") in trace
+    assert ("Migemo skipped token", "ext:ABC") in trace
+    assert any(label == "Migemo" and "unchanged" in value for label, value in trace)
+
+
+def test_trace_records_callback_error_and_connection_failure():
+    trace = []
+    dll = FakeSdk(fail_connect=True)
+
+    def fail(token):
+        raise ValueError("invalid")
+
+    with pytest.raises(EverythingError):
+        logic.run_search("ABC", migemo_expand=fail, trace=trace,
+                         searcher=lambda text, **kwargs: search(text, dll_loader=lambda: dll, **kwargs))
+    assert ("Migemo", "Callback failed; token unchanged") in trace
+    assert ("SDK search text prepared", "ABC") in trace
+    assert not any(label == "SDK SetSearchTextW attempted" for label, _ in trace)
+
+
+def test_trace_without_migemo_callback():
+    trace = []
+    logic.run_search("ABC", trace=trace, searcher=lambda text, **kwargs: [])
+    assert ("Migemo", "No callable configured or query is empty") in trace
+    assert ("After Migemo", "ABC") in trace
+
+
 class FakeState:
     def __init__(self, value=None):
         self.value = value
@@ -361,6 +435,38 @@ def _wire_actions(monkeypatch, context):
         {"name": "PDF", "query": "ext:pdf", "files_only": True, "source": "standard"}
     ])
     monkeypatch.setattr(logic, "run_search", lambda query, **kwargs: [r"C:\work\report.pdf"])
+
+
+def test_search_trace_is_logged_on_completion_even_when_search_fails(monkeypatch):
+    context = FakeContext()
+    _wire_actions(monkeypatch, context)
+
+    def failed_search(query, **kwargs):
+        kwargs["trace"].extend([("Input", query), ("SDK search text prepared", query)])
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr(logic, "run_search", failed_search)
+    actions.search_all(context)
+    context.inputs[0][2]("ABC")
+    _, work, done = context.tasks[0]
+    with pytest.raises(RuntimeError):
+        work(SimpleNamespace(checkpoint=lambda: None, progress=lambda *args: None))
+    assert context.messages == []
+    done(context, SimpleNamespace(status="failed", ok=False, error=RuntimeError("offline")))
+    assert context.messages == [
+        'Everything Input [1/1]: "ABC"',
+        'Everything SDK search text prepared [1/1]: "ABC"',
+        "Everything Search failed: offline",
+    ]
+
+
+def test_search_trace_chunks_can_be_reassembled_without_losing_characters():
+    context = FakeContext()
+    value = '日本語"\\\n' * 100
+    _log_search_trace(context, [("Migemo pattern", value)])
+    parts = [line.split(": ", 1)[1] for line in context.messages]
+    assert len(parts) > 1
+    assert json.loads("".join(parts)) == value
 
 
 @pytest.mark.parametrize(("action", "expected_scope"), [

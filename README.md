@@ -89,6 +89,28 @@ Everything syntax, and lowercase words are left unchanged. A returned pattern
 becomes an Everything `regex:` term; falsey results or callback errors keep
 the original token, with callback errors logged.
 
+For each search, the XeFM log pane shows the input, each Migemo token and raw
+pattern (or why it was skipped), the expression after expansion, and the final
+search text with any folder and `file:` restrictions. `SDK search text
+prepared` is the text prepared for the SDK; `SDK SetSearchTextW attempted`
+appears only if the connection and search-state creation succeeded and that
+SDK call is about to be made. An attempted call does not mean the SDK accepted
+the query or that results were found. Diagnostics appear when the background
+task ends, including on failure or cancellation if preparation was reached.
+Long values are split into numbered JSON-string chunks; concatenate the chunks
+in order to recover the complete value.
+
+These logs include search terms, Migemo patterns, and potentially folder paths,
+including for filters and bookmarks. They can be visible to anyone viewing or
+copying the XeFM log; do not share logs containing sensitive searches. This
+extension does not write a separate log file, but XeFM or its environment may
+retain or capture log output.
+
+Expansion is per semicolon-delimited token, not per space-separated word:
+`Tenki;Yohou` has two eligible tokens, but `Tenki Yohou` is one ineligible
+token and remains unchanged. The configured callable may itself return no
+pattern, for example because of a minimum-length setting.
+
 ## License and SDK
 
 This extension is MIT-licensed. It includes `Everything3_x64.dll` from

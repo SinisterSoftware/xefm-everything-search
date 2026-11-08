@@ -1,6 +1,6 @@
 [extension]
 id = "everything-search"
-version = "1.0.2"
+version = "1.0.3"
 api_version = 1
 name = "Everything Search"
 description = "Search Everything 1.5 from XeFM."

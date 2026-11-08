@@ -168,29 +168,43 @@ def combine_queries(*queries):
     return " ".join(query.strip() for query in queries if isinstance(query, str) and query.strip())
 
 
-def expand_migemo(query, expand):
+def expand_migemo(query, expand, trace=None):
     """Expand eligible search terms without changing filters or Everything syntax."""
     if not callable(expand) or not query:
+        if trace is not None:
+            trace.append(("Migemo", "No callable configured or query is empty"))
         return query
     result = []
     for raw_token in query.split(";"):
         token = raw_token.strip()
         if not (_MIGEMO_TOKEN.fullmatch(token) and any(ch.isupper() for ch in token)):
+            if trace is not None:
+                trace.append(("Migemo skipped token", raw_token))
             result.append(raw_token)
             continue
+        if trace is not None:
+            trace.append(("Migemo input token", token))
         try:
             pattern = expand(token)
         except Exception:
             logger.exception("MIGEMO_EXPAND failed for token %r; using it unchanged", token)
+            if trace is not None:
+                trace.append(("Migemo", "Callback failed; token unchanged"))
             result.append(raw_token)
             continue
         if not pattern:
+            if trace is not None:
+                trace.append(("Migemo", "Callback returned no pattern; token unchanged"))
             result.append(raw_token)
             continue
         if not isinstance(pattern, str):
             logger.error("MIGEMO_EXPAND must return a string pattern; using token %r unchanged", token)
+            if trace is not None:
+                trace.append(("Migemo", "Callback returned a non-string pattern; token unchanged"))
             result.append(raw_token)
             continue
+        if trace is not None:
+            trace.append(("Migemo pattern", pattern))
         result.append(f'regex:"{pattern.replace(chr(34), chr(34) * 2)}"')
     return ";".join(result)
 
@@ -224,10 +238,23 @@ def load_bookmarks(home=None, filters=None, environ=None):
 
 def run_search(
     query, scope=None, files_only=False, options=None, migemo_expand=None,
-    searcher=sdk_search, job=None, expand_migemo_enabled=True,
+    searcher=sdk_search, job=None, expand_migemo_enabled=True, trace=None,
 ):
-    expanded = expand_migemo(query, migemo_expand) if expand_migemo_enabled else query
+    if trace is not None:
+        trace.append(("Input", query))
+    if expand_migemo_enabled:
+        expanded = expand_migemo(query, migemo_expand, trace=trace)
+    else:
+        expanded = query
+        if trace is not None:
+            trace.append(("Migemo", "Disabled for this search"))
     sdk_query = build_query(expanded, scope, files_only)
+    if trace is not None:
+        trace.append(("After Migemo", expanded))
+        trace.append(("SDK search text prepared", sdk_query))
     checkpoint = job.checkpoint if job is not None else None
     progress = job.progress if job is not None else None
-    return searcher(sdk_query, options=options or {}, checkpoint=checkpoint, progress=progress)
+    kwargs = {"options": options or {}, "checkpoint": checkpoint, "progress": progress}
+    if trace is not None:
+        kwargs["on_set_search_text"] = lambda text: trace.append(("SDK SetSearchTextW attempted", text))
+    return searcher(sdk_query, **kwargs)

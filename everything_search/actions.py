@@ -1,5 +1,6 @@
 """XeFM actions for Everything Search."""
 
+import json
 import logging
 
 from xefm.user_api import extension
@@ -8,6 +9,14 @@ from . import logic, store
 from .sdk import EverythingError
 
 logger = logging.getLogger(__name__)
+
+
+def _log_search_trace(ctx, trace):
+    for label, value in trace:
+        text = json.dumps(value, ensure_ascii=False)
+        chunks = [text[i:i + 180] for i in range(0, len(text), 180)]
+        for index, chunk in enumerate(chunks, 1):
+            ctx.message(f"Everything {label} [{index}/{len(chunks)}]: {chunk}")
 
 
 def _settings():
@@ -39,6 +48,7 @@ def _start_search(ctx, query, scope=None, files_only=False, options=None, title=
             "options": dict(options or {}),
         }
         migemo_expand = settings.MIGEMO_EXPAND if expand_migemo else None
+        trace = []
 
         def work(job):
             return logic.run_search(
@@ -49,9 +59,11 @@ def _start_search(ctx, query, scope=None, files_only=False, options=None, title=
                 migemo_expand=migemo_expand,
                 job=job,
                 expand_migemo_enabled=expand_migemo,
+                trace=trace,
             )
 
         def done(ctx, outcome):
+            _log_search_trace(ctx, trace)
             if outcome.status == "cancelled":
                 ctx.message("Everything search cancelled")
             elif not outcome.ok:
