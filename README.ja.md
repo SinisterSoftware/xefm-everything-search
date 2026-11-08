@@ -28,6 +28,7 @@ xefm ext install github:SinisterSoftware/xefm-everything-search
 |---|---|---|
 | `everything.search-folder` | `Alt-S` | 現在のペインのフォルダー以下を対象に検索語を入力して検索します。 |
 | `everything.search-all` | `Alt-Shift-S` | 全体を対象に検索語を入力して検索します。 |
+| `everything.go-to-result-location` | `Alt-O` | カーソル項目のあるフォルダーを同じペインで開き、その項目にカーソルを合わせます。 |
 | `everything.pick-filter` | `Alt-Shift-F` | フィルターを選択し、全体から検索します。 |
 | `everything.pick-filter-folder` | `Alt-Shift-L` | フィルターを選択し、現在のフォルダー以下から検索します。 |
 | `everything.bookmarks` | `Alt-B` | 拡張のブックマークまたは Everything の CSV ブックマークを選択して検索します。 |
@@ -36,6 +37,8 @@ xefm ext install github:SinisterSoftware/xefm-everything-search
 | `everything.show-help` | なし | XeFM 内に簡単なヘルプを表示します。 |
 
 キー候補が別アクションと競合する場合は、既存の `KEY_BINDINGS` を編集し、必要なら競合先のキーも変更してください。たとえば明示的に割り当てる場合は、`~/.xefm/config.py` の既存の `Config` クラスに次のように追加します。
+
+検索結果で `Alt-O` を押すと、検索結果一覧を抜けて、カーソル項目のあるフォルダーを同じペインに表示します。`Shift-O` は検索結果を残したまま別ペインに表示します。`O` の XeFM 標準のペイン同期動作は変更しません。
 
 ```python
 KEY_BINDINGS = {

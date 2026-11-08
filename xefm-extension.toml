@@ -1,6 +1,6 @@
 [extension]
 id = "everything-search"
-version = "1.0.3"
+version = "1.0.4"
 api_version = 1
 name = "Everything Search"
 description = "Search Everything 1.5 from XeFM."
@@ -12,6 +12,7 @@ updates = "github:SinisterSoftware/xefm-everything-search"
 [contributes.actions]
 "everything.search-folder" = { entry = "everything_search.actions:search_folder", description = "Search Everything within the current folder" }
 "everything.search-all" = { entry = "everything_search.actions:search_all", description = "Search Everything across all indexed locations" }
+"everything.go-to-result-location" = { entry = "everything_search.actions:go_to_result_location", description = "Open the focused result's folder in the current pane" }
 "everything.pick-filter" = { entry = "everything_search.actions:pick_filter", description = "Choose a filter and search all locations" }
 "everything.pick-filter-folder" = { entry = "everything_search.actions:pick_filter_folder", description = "Choose a filter and search within the current folder" }
 "everything.bookmarks" = { entry = "everything_search.actions:bookmarks", description = "Open a saved Everything bookmark" }
@@ -22,6 +23,7 @@ updates = "github:SinisterSoftware/xefm-everything-search"
 [contributes.key_suggestions]
 "everything.search-folder" = ["Alt-S"]
 "everything.search-all" = ["Alt-Shift-S"]
+"everything.go-to-result-location" = ["Alt-O"]
 "everything.pick-filter" = ["Alt-Shift-F"]
 "everything.pick-filter-folder" = ["Alt-Shift-L"]
 "everything.bookmarks" = ["Alt-B"]

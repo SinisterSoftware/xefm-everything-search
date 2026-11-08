@@ -266,6 +266,7 @@ def test_all_legacy_action_keys_are_present_in_manifest():
     expected = {
         "everything.search-folder": ("search_folder", "Alt-S"),
         "everything.search-all": ("search_all", "Alt-Shift-S"),
+        "everything.go-to-result-location": ("go_to_result_location", "Alt-O"),
         "everything.pick-filter": ("pick_filter", "Alt-Shift-F"),
         "everything.pick-filter-folder": ("pick_filter_folder", "Alt-Shift-L"),
         "everything.bookmarks": ("bookmarks", "Alt-B"),
@@ -425,6 +426,25 @@ class FakeContext:
 
     def show_markdown(self, title, source):
         self.markdown.append((title, source))
+
+
+@pytest.mark.parametrize("filename", ["report.pdf", "folder"])
+def test_result_location_opens_parent_and_focuses_result(filename):
+    context = FakeContext()
+    path = Path("C:/work") / filename
+    context.pane.focused = SimpleNamespace(name="work/" + filename, path=path)
+    calls = []
+    context.pane.cd = lambda parent, focus_name: calls.append((parent, focus_name))
+    actions.go_to_result_location(context)
+    assert calls == [(path.parent, filename)]
+
+
+@pytest.mark.parametrize("entry", [None, SimpleNamespace(name="..")])
+def test_result_location_rejects_missing_or_parent_entry(entry):
+    context = FakeContext()
+    context.pane.focused = entry
+    actions.go_to_result_location(context)
+    assert context.messages == ["No file or folder is focused"]
 
 
 def _wire_actions(monkeypatch, context):

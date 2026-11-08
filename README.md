@@ -29,6 +29,7 @@ The extension contributes the existing action names and suggested keys:
 |---|---|
 | `everything.search-folder` | `Alt-S` |
 | `everything.search-all` | `Alt-Shift-S` |
+| `everything.go-to-result-location` | `Alt-O` |
 | `everything.pick-filter` | `Alt-Shift-F` |
 | `everything.pick-filter-folder` | `Alt-Shift-L` |
 | `everything.bookmarks` | `Alt-B` |
@@ -39,6 +40,11 @@ The extension contributes the existing action names and suggested keys:
 XeFM suggests a key only when it is available. If a suggestion conflicts with
 another action, add the action explicitly to `KEY_BINDINGS` in `config.py`.
 Every action is also available from the command palette.
+
+On a search result, `Alt-O` opens the focused item's containing folder in the
+same pane and places the cursor on that item, leaving the results list. XeFM's
+`Shift-O` instead reveals the item in the other pane and keeps the results.
+`O` retains XeFM's normal pane synchronization behavior.
 
 ## Filters, bookmarks, and search state
 

@@ -121,6 +121,16 @@ def search_all(ctx):
     _ask_query(ctx)
 
 
+def go_to_result_location(ctx):
+    """Open the focused result's containing folder in the current pane."""
+    entry = ctx.pane.focused
+    if entry is None or entry.name == "..":
+        ctx.message("No file or folder is focused")
+        return
+    path = entry.path
+    ctx.pane.cd(path.parent, focus_name=path.name)
+
+
 def _filters(ctx):
     settings = _settings()
     return logic.load_filters(settings.FILTERS, logic.filter_path())
