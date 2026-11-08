@@ -1,0 +1,1 @@
+"""Everything Search extension."""

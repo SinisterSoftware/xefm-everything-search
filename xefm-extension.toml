@@ -1,0 +1,31 @@
+[extension]
+id = "everything-search"
+version = "1.0.0"
+api_version = 1
+name = "Everything Search"
+description = "Search Everything 1.5 from XeFM."
+min_xefm = "1.13.0"
+platforms = ["windows"]
+homepage = "https://github.com/SinisterSoftware/xefm-everything-search"
+updates = "github:SinisterSoftware/xefm-everything-search"
+
+[contributes.actions]
+"everything.search-folder" = { entry = "everything_search.actions:search_folder", description = "Search Everything within the current folder" }
+"everything.search-all" = { entry = "everything_search.actions:search_all", description = "Search Everything across all indexed locations" }
+"everything.pick-filter" = { entry = "everything_search.actions:pick_filter", description = "Choose a filter and search all locations" }
+"everything.pick-filter-folder" = { entry = "everything_search.actions:pick_filter_folder", description = "Choose a filter and search within the current folder" }
+"everything.bookmarks" = { entry = "everything_search.actions:bookmarks", description = "Open a saved Everything bookmark" }
+"everything.save-bookmark" = { entry = "everything_search.actions:save_bookmark", description = "Save the most recent Everything search" }
+"everything.delete-bookmark" = { entry = "everything_search.actions:delete_bookmark", description = "Delete an extension bookmark" }
+"everything.show-help" = { entry = "everything_search.actions:show_help", description = "Show Everything Search help" }
+
+[contributes.key_suggestions]
+"everything.search-folder" = ["Alt-S"]
+"everything.search-all" = ["Alt-Shift-S"]
+"everything.pick-filter" = ["Alt-Shift-F"]
+"everything.pick-filter-folder" = ["Alt-Shift-L"]
+"everything.bookmarks" = ["Alt-B"]
+"everything.save-bookmark" = ["Alt-Shift-B"]
+
+[settings]
+defaults = "everything_search.settings:Settings"
