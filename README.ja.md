@@ -18,7 +18,7 @@ XeFM のコマンドラインからインストールします。
 xefm ext install github:SinisterSoftware/xefm-everything-search
 ```
 
-インストール後、XeFM で **Tools ▸ Reload Configuration** を実行するか、XeFM を再起動してください。バージョン更新を確認する場合は **Check Extension Updates** を使えます。マニフェストは GitHub の `v1.0.1` 以降のタグを更新元として設定しています。
+インストール後、XeFM で **Tools ▸ Reload Configuration** を実行するか、XeFM を再起動してください。バージョン更新を確認する場合は **Check Extension Updates** を使えます。マニフェストは GitHub の `v1.0.2` 以降のタグを更新元として設定しています。
 
 ## アクション
 
