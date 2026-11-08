@@ -5,6 +5,8 @@ SDK 3 named-pipe API and shows matches in the active XeFM pane. It does not
 launch or locate the Everything executable, so renaming that executable has no
 effect. The bundled SDK DLL is 64-bit; 64-bit Python is required.
 
+日本語の詳しい説明は [README.ja.md](README.ja.md) を参照してください。
+
 Install from GitHub with:
 
 ```text
@@ -50,9 +52,9 @@ object mapping filter names to either a query string or an object:
 Filters merge in this order: standard filters, the first available
 `Filters.csv`, then this JSON file. The last definition of a name wins
 case-insensitively. `Filters.csv` is read from the first existing location in
-this order: `%SCOOP%\\persist\\everything-beta`,
-`%SCOOP%\\persist\\everything`, `%APPDATA%\\Everything`, then
-`%LOCALAPPDATA%\\Everything`. CSV files are read-only.
+this order: `%SCOOP%\persist\everything-beta`,
+`%SCOOP%\persist\everything`, `%APPDATA%\Everything`, then
+`%LOCALAPPDATA%\Everything`. CSV files are read-only.
 
 Extension bookmarks live in `~/.xefm/state/everything_bookmarks.json` as a
 UTF-8 JSON array of objects with `name`, `query`, and `scope` fields. Existing
